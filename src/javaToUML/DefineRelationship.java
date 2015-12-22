@@ -12,8 +12,11 @@ public class DefineRelationship{
 	private ArrayList<String> interFaceName;
 	private ArrayList<String> paraType;
 	private ArrayList<String> nonMethodType;
+	private ArrayList<String> consPara;
+	private ArrayList<String> preAsso = new ArrayList<String>();
+	private ArrayList<String> bodyType;
 	
-	public DefineRelationship(FieldVisitor fv, GetClassInterfaceName cin, ArrayList<String> fileName, ArrayList<String> interFaceName, MethodVisitor mv){
+	public DefineRelationship(FieldVisitor fv, GetClassInterfaceName cin, ArrayList<String> fileName, ArrayList<String> interFaceName, MethodVisitor mv, ConstructorVisitor cv){
 		parentClass = cin.getParentClass();
 		currentClass = cin.getClassInterfaceName();
 		interfaceName = cin.allInterFaceName();
@@ -23,6 +26,8 @@ public class DefineRelationship{
 		this.interFaceName = interFaceName;
 		this.paraType = mv.getNonPrimitiveType();
 		nonMethodType = mv.getNonReserveMethodType();
+		consPara = cv.getNoReserveType();
+		this.bodyType = mv.getBodyType();
 	}
 	
 	public void CreatRelation(){
@@ -42,7 +47,7 @@ public class DefineRelationship{
 				System.err.println("No class "+parentClass+" exists in the folder");
 				System.exit(1);
 			}
-			relationFormat.add(parentClass+" <|-- "+ currentClass);
+			relationFormat.add(parentClass+"<|--"+ currentClass);
 		}else{
 			relationFormat.add(null);
 		}
@@ -76,30 +81,58 @@ public class DefineRelationship{
 			}
 		}
 		
-		//define the relationship between nonPrimitive type and current class
-		if(nonPrimitive != null){
-			for(int i = 0; i < nonPrimitive.size(); i++){
-				tempStr = nonPrimitive.get(i);
-				if(tempStr.contains(":")){
-					spString = tempStr.split(":");
-					if(interFaceName.contains(spString[0])){
-						relationFormat.add(currentClass+"..>"+spString[0]+" : use");
+		// define the relationship between nonReserve type and current class
+		if(consPara != null){
+			for(int i = 0; i < consPara.size(); i++){
+				// test if the Class file is inside of folder
+				if(fileName.contains(consPara.get(i))){
+					if(interFaceName.contains(consPara.get(i))){
+						if(interFaceName.contains(currentClass)){
+							continue;
+						}
+						relationFormat.add(currentClass+" ..> "+consPara.get(i)+":use");
 						continue;
 					}
-					int check = spString[0].compareTo(currentClass);
-					if(check < 0)
-						relationFormat.add(spString[0]+":"+spString[1]+"--\"1\":"+currentClass);
-					else if(check > 0)
-						relationFormat.add(currentClass+":\"1\"--"+spString[1]+":"+spString[0]);
-				}else{
-					int check1 = nonPrimitive.get(i).compareTo(currentClass);
-					if(check1 < 0)
-						relationFormat.add(nonPrimitive.get(i)+":\"1\"--\"1\":"+currentClass);
-					else if(check1 > 0)
-						relationFormat.add(currentClass+":\"1\"--\"1\":"+nonPrimitive.get(i));
+//					int check = consPara.get(i).compareTo(currentClass);
+//					if(check < 0)
+//						relationFormat.add(consPara.get(i)+"--"+currentClass);
+//					else if(check > 0)
+//						relationFormat.add(currentClass+"--"+consPara.get(i));
 				}
 			}
 		}
+		
+		//define the relationship between nonPrimitive type and current class
+//		if(nonPrimitive != null){
+//			for(int i = 0; i < nonPrimitive.size(); i++){
+//				tempStr = nonPrimitive.get(i);
+//				if(tempStr.contains(":")){
+//					spString = tempStr.split(":");
+//					if(interFaceName.contains(spString[0])){
+//						if(interFaceName.contains(currentClass)){
+//							continue;
+//						}
+//						relationFormat.add(currentClass+"..>"+spString[0]+" : use");
+//						continue;
+//					}
+//					int check = spString[0].compareTo(currentClass);
+//					if(check < 0)
+//						relationFormat.add(spString[0]+":"+spString[1]+"--:"+currentClass);
+//					else if(check > 0)
+//						relationFormat.add(currentClass+":--"+spString[1]+":"+spString[0]);
+//				}else{
+//					if(interFaceName.contains(tempStr)){
+//						relationFormat.add(currentClass+"..>"+tempStr+" : use");
+//						continue;
+//					}
+//					int check1 = nonPrimitive.get(i).compareTo(currentClass);
+//					if(check1 < 0)
+//						relationFormat.add(nonPrimitive.get(i)+":\"1\"--:"+currentClass);
+//					else if(check1 > 0)
+//						relationFormat.add(currentClass+":--\"1\":"+nonPrimitive.get(i));
+//				}
+//			}
+//		}
 		
 		//define the relationship between nonPrimitive type in method and current classes
 		if(paraType != null){
@@ -107,36 +140,94 @@ public class DefineRelationship{
 				// test if the Class file is inside of folder
 				if(fileName.contains(paraType.get(i))){
 					if(interFaceName.contains(paraType.get(i))){
-						relationFormat.add(currentClass+"..>"+paraType.get(i)+" : use");
-						System.out.println(currentClass+"..>"+paraType.get(i)+" : use");
+						if(interFaceName.contains(currentClass)){
+							continue;
+						}
+						relationFormat.add(currentClass+" ..> "+paraType.get(i)+":use");
 						continue;
 					}
 					int check = paraType.get(i).compareTo(currentClass);
 					if(check < 0)
 						relationFormat.add(paraType.get(i)+"--"+currentClass);
 					else if(check > 0)
-						relationFormat.add(currentClass+"--"+paraType.get(i));
+						relationFormat.add(currentClass + "--" + paraType.get(i));
 				}
 			}
 		}
 		
-		if(nonMethodType != null){
-			for(int i = 0; i < nonMethodType.size(); i++){
+		if (nonMethodType != null) {
+			for (int i = 0; i < nonMethodType.size(); i++) {
 				// test if the Class file is inside of folder
-				if(fileName.contains(nonMethodType.get(i))){
-					if(interFaceName.contains(nonMethodType.get(i))){
-						relationFormat.add(currentClass+"..>"+nonMethodType.get(i)+" : use");
+				if (fileName.contains(nonMethodType.get(i))) {
+					if (interFaceName.contains(nonMethodType.get(i))) {
+						if (interFaceName.contains(currentClass)) {
+							continue;
+						}
+						relationFormat.add(currentClass + " ..> " + nonMethodType.get(i) + ":use");
 						continue;
 					}
 					int check = nonMethodType.get(i).compareTo(currentClass);
-					if(check < 0)
-						relationFormat.add(nonMethodType.get(i)+"--"+currentClass);
-					else if(check > 0)
-						relationFormat.add(currentClass+"--"+nonMethodType.get(i));
+					if (check < 0)
+						relationFormat.add(nonMethodType.get(i) + "--" + currentClass);
+					else if (check > 0)
+						relationFormat.add(currentClass + "--" + nonMethodType.get(i));
 				}
 			}
 		}
 		
+		if (bodyType != null) {
+			for (int i = 0; i < bodyType.size(); i++) {
+				if (interFaceName.contains(bodyType.get(i))) {
+					if(interFaceName.contains(currentClass)) {
+						continue;
+					}
+					relationFormat.add(currentClass + " ..> " + bodyType.get(i) + ":use");
+				}
+			}
+		}
+	}
+	
+	public ArrayList<String> getAssociation(){
+		String tempStr = null;
+		String[] spString;
+		if(nonPrimitive != null){
+			for(int i = 0; i < nonPrimitive.size(); i++){
+				tempStr = nonPrimitive.get(i);
+				if(tempStr.contains(":")){
+					spString = tempStr.split(":");
+					if(interFaceName.contains(spString[0])){
+						if(interFaceName.contains(currentClass)){
+							continue;
+						}
+						relationFormat.add(currentClass + " ..> " + spString[0] + ":use");
+						if (spString[1].contains("*")) {
+							relationFormat.add(currentClass + "--\"*\""+ spString[0]);
+						} else {
+							relationFormat.add(currentClass + " -- "+ spString[0]);
+						}
+						
+						continue;
+					}
+					int check = spString[0].compareTo(currentClass);
+					if(check < 0)
+						preAsso.add(spString[0]+":"+spString[1]+"--:"+currentClass);
+					else if(check > 0)
+						preAsso.add(currentClass+":--"+spString[1]+":"+spString[0]);
+				}else{
+					if(interFaceName.contains(tempStr)){
+						relationFormat.add(currentClass + " ..> "+ tempStr + ":use");
+						relationFormat.add(currentClass + " -- "+ tempStr);
+						continue;
+					}
+					int check1 = nonPrimitive.get(i).compareTo(currentClass);
+					if(check1 < 0)
+						preAsso.add(nonPrimitive.get(i)+":\"1\"--:"+currentClass);
+					else if(check1 > 0)
+						preAsso.add(currentClass+":--\"1\":"+nonPrimitive.get(i));
+				}
+			}
+		}
+		return preAsso;
 	}
 	
 	public ArrayList<String> getRelationFormat(){

@@ -22,16 +22,53 @@ public class FieldVisitor extends VoidVisitorAdapter{
 		String variableName;
 		String replacement = null;
 		String subString = null;
+		String[] spString;
+		String[] splitStr;
+		boolean skip = false;
 		// if variable name is null meaning no variable available
-		if(n.getVariables().toString() != null){
+		if (n.getVariables().toString() != null) {
 			variableName = n.getVariables().toString();
 			startIndex = variableName.indexOf("[");
 			endIndex = variableName.indexOf("]");
 			replacement = variableName.substring(startIndex+1, endIndex);
-			// all variable name array list
-			getVariable.add(replacement);
+			if (replacement.contains("=")) {
+				spString = replacement.split("=");
+				spString[0] = spString[0].replaceAll("^\\s*|\\s*$", "");
+				spString[1] = spString[1].replaceAll("^\\s*|\\s*$", "");
+				if (spString[1].contains("<") == true) {
+					if (spString[1].contains(">") == false) {
+						System.err.println("Expecting >");
+						System.exit(1);
+					} else {
+						startIndex = spString[1].indexOf("<");
+						endIndex = spString[1].indexOf("(");
+						subString = spString[1].substring(startIndex, endIndex);
+						getType.add(subString);
+						skip = true;
+					}
+				} else if (spString[1].contains("[") == true) {
+					if (spString[1].contains("]") == false) {
+						System.err.println("Expecting ]");
+						System.exit(1);
+					} else {
+						splitStr = spString[1].split(" ");
+						endIndex = splitStr[1].indexOf("(");
+						subString = splitStr[1].substring(0, endIndex);
+						getType.add(subString);
+						skip = true;
+					}
+				} else {
+					getVariable.add(spString[0]);
+				}
+			} else {
+				// all variable name array list
+				getVariable.add(replacement);
+			}
 			// all data type array list
-			getType.add(n.getType().toString());
+			if(skip == false){
+				getType.add(n.getType().toString());
+			}
+			skip = false;
 			switch(n.getModifiers()){
 				case 0: modifier.add("~");
 						break;
@@ -47,9 +84,7 @@ public class FieldVisitor extends VoidVisitorAdapter{
 			// get all Non reserved data type
 			for(int i = 0; i < getType.size(); i++){
 				if(!reserveTypes.contains(getType.get(i))){
-					//System.out.println(getType.get(i));
 					if(getType.get(i).contains("<")){
-						//System.out.println(getType.get(i));
 						startIndex = getType.get(i).indexOf("<");
 						endIndex = getType.get(i).indexOf(">");
 						if(getType.get(i).indexOf(">") < 0){
@@ -61,7 +96,6 @@ public class FieldVisitor extends VoidVisitorAdapter{
 							continue;
 						}
 						subString = subString+":\"*\"";
-						//System.out.println(subString);
 						if(!nonPrimitive.contains(subString)){
 							nonPrimitive.add(subString);
 						}
@@ -94,9 +128,30 @@ public class FieldVisitor extends VoidVisitorAdapter{
 		return nonPrimitive;
 	}
 	
-	public ArrayList<String> getFormat(){
-		if(getVariable.size() > 0){
-			for(int i = 0; i < getVariable.size(); i++){
+	public ArrayList<String> getFormat(ArrayList<String> fileName){
+		String subStr;
+		int startIndex;
+		int endIndex;
+		if (getVariable.size() > 0) {
+			for (int i = 0; i < getVariable.size(); i++) {
+				if (getType.get(i).contains("<") && getType.get(i).contains(">")) {
+					startIndex = getType.get(i).indexOf("<");
+					endIndex = getType.get(i).indexOf(">");
+					subStr = getType.get(i).substring(startIndex+1, endIndex);
+					if (fileName.contains(subStr)) {
+						continue;
+					}
+				} else if (getType.get(i).contains("<") && !getType.get(i).contains(">")) {
+					System.err.println("Expecting >");
+					System.exit(1);
+				}
+				
+				if (fileName.contains(getType.get(i))) {
+					continue;
+				}
+				if (modifier.get(i).equals("#") || modifier.get(i).equals("~")){
+					continue;
+				}	
 				fieldFormat.add(modifier.get(i)+getVariable.get(i)+":"+getType.get(i));
 			}
 			return fieldFormat;
